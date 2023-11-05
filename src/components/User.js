@@ -18,7 +18,7 @@ import {
   removeUser,
   updateUser,
 } from "../actions/actionCreater";
-import {FormGroup, Label, Input, FormFeedback, Row, Col, FormText, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
+import {FormGroup, Label, Input, Row, Col, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { connect, useDispatch, useSelector } from "react-redux";
 import { OpenPopup } from "../actions/userActions";
 import Typography from "@mui/material/Typography";
@@ -34,6 +34,8 @@ import 'react-input-range/lib/css/index.css'
 import Swal from 'sweetalert2';
 import AltImage from './Image/emptyImage.jpg';
 import 'bootstrap/dist/css/bootstrap.min.css';
+
+
 const cityOptions = [
 
   { value: 'Mumbai', label: 'Mumbai' },
@@ -63,8 +65,6 @@ const columns = [
   { id: "status", name: "Status" },
   { id: "action", name: "Action" },
 ];
-// const SUPPORTED_FORMATS = ['image/jpg', 'image/jpeg', 'image/png'];
-// const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 const schema = yup
   .object({
@@ -86,14 +86,6 @@ const schema = yup
 
     address: yup.string().max(500, 'Address must be at most 500 characters')
       .required('Address is required'),
-    profileImage: yup.mixed()
-      // .test('fileSize', 'File is too large, only 2MB allowed', (value) => {
-      // return value && value.size <= MAX_FILE_SIZE;
-      // })
-      // .test('fileFormat', 'Unsupported file format', (value) => {
-      // return value && SUPPORTED_FORMATS.includes(value.type);
-      // })
-      .required('Image is required'),
 
   })
   .required();
@@ -140,6 +132,8 @@ const User = (props) => {
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [selectedColor, setSelectedColor] = useState('#7f2929');
+  const [errorMessage, setErrorMessage] = useState('');
+
 const getAll =()=>{
 
 
@@ -173,13 +167,22 @@ const getAll =()=>{
     setAge(newValue);
   };
   const handleProfile = (e) => {
+    const selectedFile = e.target.files[0];
+console.log("sizeee",selectedFile, selectedFile.size);
+    if (selectedFile) {
+      if (selectedFile.size > 2 * 1024 * 1024) {
 
-    setProfileImage({
-      preview: URL.createObjectURL(e.target.files[0]),
-      raw: e.target.files[0]
-    })
+        setErrorMessage('File size exceeds 2MB limit');
+        setProfileImage(null);
+      } else {
 
-    
+        setProfileImage({
+          preview: URL.createObjectURL(e.target.files[0]),
+          raw: e.target.files[0]
+        })
+        setErrorMessage('');
+      }
+    }
   }
   const handleColorChange = (e) => {
     setSelectedColor(e.target.value); // Update the selected color when it changes
@@ -200,9 +203,7 @@ const getAll =()=>{
   };
   const handleDateChange = (e) => {
     console.log('Selected date:', e.target.value);
-
     setDate(e.target.value)
-    // You can perform actions based on the selected date here
   };
   const functionAdd = () => {
     iseditchange(false);
@@ -217,7 +218,6 @@ const getAll =()=>{
     clearstate();
     dispatch(OpenPopup());
   };
-
   const onSubmit = (data) => {
     const _obj = {
       id,
@@ -233,7 +233,6 @@ const getAll =()=>{
       favoriteColor: selectedColor,
       status: status,
     };
-
     if (isedit) {
       dispatch(updateUser(_obj));
     } else {
@@ -243,13 +242,11 @@ const getAll =()=>{
   };
 
   const handleEdit = (code) => {
-
     iseditchange(true);
     titlechange("Edit user");
     openchange(true);
     dispatch(getUserbycode(code));
   };
-
   const handleRemove = (code) => {
     return Swal.fire({
       title: 'Are You Sure?',
@@ -260,9 +257,6 @@ const getAll =()=>{
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, delete it!'
   }
-  
-
-  
   
   ).then(function (result) {
 if(result.value === true){
@@ -279,9 +273,7 @@ if(result.value === true){
   })
   }
     
-    
-
-
+  
   const clearstate = () => {
     idchange(0);
     setState("");
@@ -345,9 +337,9 @@ if(result.value === true){
                           <TableCell>{row.email}</TableCell>
                           <TableCell>{row.city}</TableCell>
                           <TableCell>{row.state}</TableCell>
-                          <TableCell>{row.address}</TableCell>
                           <TableCell>{row.date}</TableCell>
                           <TableCell>{row.age}</TableCell>
+                          <TableCell>{row.address}</TableCell>
                           <TableCell>{row.profileImage}</TableCell>
                           <TableCell><div className="table-cell" style={{ backgroundColor: row.favoriteColor, borderRadius: "10%" }}>{row.favoriteColor}</div></TableCell>
                           <TableCell>{row.status === true ? "Active" : "InActive"}</TableCell>
@@ -533,11 +525,13 @@ if(result.value === true){
                   </Label>
                   <Input
                     id="profileImage"
-                    accept="image/*"
+                    accept="image/jpeg, image/png"                    
                     name="profileImage"
                     type="file"
                     onChange={(e) => handleProfile(e)}
                   />
+                        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+
                 </FormGroup>
               </Col>
               <Col md={6}>
@@ -583,8 +577,6 @@ if(result.value === true){
           </form>
         </ModalBody>
       </Modal>
-      {/* </DialogContent> */}
-      {/* </Dialog> */}
     </div>
   );
 };
