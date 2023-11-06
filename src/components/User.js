@@ -34,7 +34,9 @@ import 'react-input-range/lib/css/index.css'
 import Swal from 'sweetalert2';
 import AltImage from './Image/emptyImage.jpg';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import Datetime from 'react-datetime';
+import 'react-datetime/css/react-datetime.css';
+import moment from 'moment';
 
 const cityOptions = [
 
@@ -57,7 +59,7 @@ const columns = [
   { id: "email", name: "Email" },
   { id: "city", name: "City" },
   { id: "state", name: "State" },
-  { id: "date", name: "Date" },
+  { id: "birthdate", name: "Date_of_Birth" },
   { id: "age", name: "Age" },
   { id: "address", name: "Address" },
   { id: "profile", name: "Profile" },
@@ -121,22 +123,24 @@ const User = (props) => {
   const [id, idchange] = useState(0);
   const [date, setDate] = useState("");
   const [status, setStatus] = useState(false);
-  const [open, openchange] = useState(false);
-  const [rowperpage, rowperpagechange] = useState(5);
-  const [page, pagechange] = useState(0);
-  const [isedit, iseditchange] = useState(false);
-  const [title, titlechange] = useState("");
+  const [open, openChange] = useState(false);
+  const [rowperpage, setRowPerPageChange] = useState(5);
+  const [page, setPageChange] = useState(0);
+  const [editChange, setEditChange] = useState(false);
+  const [title, setTitle] = useState("");
+  const [titleButton, setTitleButton] = useState("");
+
   const editobj = useSelector((state) => state.user.userObj);
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');
+  const [image, setImage] = useState('');
+
   const [selectedColor, setSelectedColor] = useState('#7f2929');
   const [errorMessage, setErrorMessage] = useState('');
 
 const getAll =()=>{
-
-
   if (Object.keys(editobj).length > 0) {
     idchange(editobj.id);
     setValue("name", editobj.name);
@@ -150,6 +154,7 @@ const getAll =()=>{
     setProfileImage(editobj.profileImage)
     setSelectedColor(editobj.favoriteColor)
     setStatus(editobj.status);
+
   } else {
     clearstate();
   }
@@ -160,19 +165,18 @@ const getAll =()=>{
     getAll()
   }, [editobj]);
 
-
-
+  const showProfileImage = (localStorage.getItem(`uploadedImage_${editobj && editobj.id}`));
 
   const handleAgeChange = (newValue) => {
     setAge(newValue);
   };
   const handleProfile = (e) => {
     const selectedFile = e.target.files[0];
-console.log("sizeee",selectedFile, selectedFile.size);
+
     if (selectedFile) {
       if (selectedFile.size > 2 * 1024 * 1024) {
 
-        setErrorMessage('File size exceeds 2MB limit');
+        setErrorMessage('File size too large (2MB limit)');
         setProfileImage(null);
       } else {
 
@@ -181,9 +185,22 @@ console.log("sizeee",selectedFile, selectedFile.size);
           raw: e.target.files[0]
         })
         setErrorMessage('');
+
+        if (selectedFile) {
+          const reader = new FileReader();
+    
+          reader.onload = (e) => {
+            const base64Image = e.target.result;
+            setImage({ ...image, [editobj && editobj.id]: base64Image });
+            localStorage.setItem(`uploadedImage_${editobj && editobj.id}`, base64Image);
+          };
+    
+          reader.readAsDataURL(selectedFile);
+        }
       }
     }
   }
+
   const handleColorChange = (e) => {
     setSelectedColor(e.target.value); // Update the selected color when it changes
   };
@@ -194,27 +211,33 @@ console.log("sizeee",selectedFile, selectedFile.size);
     setCity(event.target.value);
   };
   const handlePageChange = (event, newpage) => {
-    pagechange(newpage);
+    setPageChange(newpage);
   };
 
-  const handleRowperPageChange = (event) => {
-    rowperpagechange(+event.target.value);
-    pagechange(0);
+  const handlerowPerPageChange = (event) => {
+    setRowPerPageChange(+event.target.value);
+    setPageChange(0);
   };
+
   const handleDateChange = (e) => {
-    console.log('Selected date:', e.target.value);
-    setDate(e.target.value)
+
+    setDate(e)
   };
+
+  const formattedDate = date instanceof moment ? date.format('MMMM D, YYYY hh:mm A') : '';
   const functionAdd = () => {
-    iseditchange(false);
-    titlechange("Add user");
+    setEditChange(false);
+    setTitle("Add user");
+    setTitleButton("Submit");
+
     openpopup();
+    clearstate()
   };
   const closePopup = () => {
-    openchange(false);
+    openChange(false);
   };
   const openpopup = () => {
-    openchange(true);
+    openChange(true);
     clearstate();
     dispatch(OpenPopup());
   };
@@ -227,13 +250,13 @@ console.log("sizeee",selectedFile, selectedFile.size);
       city: city,
       state: state,
       address: data.address,
-      date: date,
+      date:formattedDate || date,
       age: age,
-      profileImage: profileImage.raw && profileImage.raw.name,
+      profileImage: profileImage.raw && profileImage.raw.name ||profileImage,
       favoriteColor: selectedColor,
       status: status,
     };
-    if (isedit) {
+    if (editChange) {
       dispatch(updateUser(_obj));
     } else {
       dispatch(createUser(_obj));
@@ -242,9 +265,11 @@ console.log("sizeee",selectedFile, selectedFile.size);
   };
 
   const handleEdit = (code) => {
-    iseditchange(true);
-    titlechange("Edit user");
-    openchange(true);
+    setEditChange(true);
+    setTitle("Edit user");
+    setTitleButton("Update");
+
+    openChange(true);
     dispatch(getUserbycode(code));
   };
   const handleRemove = (code) => {
@@ -277,6 +302,7 @@ if(result.value === true){
   const clearstate = () => {
     idchange(0);
     setState("");
+    setDate("")
     setCity("");
     setStatus("");
     setSelectedColor("");
@@ -286,7 +312,6 @@ if(result.value === true){
     setValue("city", '');
     setValue("state", '');
     setValue("address", '');
-    setValue("date", '');
     setValue("age", '');
     setValue("profileImage", '');
     setSelectedColor('')
@@ -340,7 +365,17 @@ if(result.value === true){
                           <TableCell>{row.date}</TableCell>
                           <TableCell>{row.age}</TableCell>
                           <TableCell>{row.address}</TableCell>
-                          <TableCell>{row.profileImage}</TableCell>
+                          <TableCell>
+                          <>
+                          <img style={{
+                    width: 70, height: 70, borderRadius: 70/ 2,
+                  }}
+                    src={localStorage.getItem(`uploadedImage_${row && row.id}`)? localStorage.getItem(`uploadedImage_${row && row.id}`) : AltImage}
+                    alt="img"
+                    
+                  /> </>
+                          
+                          </TableCell>
                           <TableCell><div className="table-cell" style={{ backgroundColor: row.favoriteColor, borderRadius: "10%" }}>{row.favoriteColor}</div></TableCell>
                           <TableCell>{row.status === true ? "Active" : "InActive"}</TableCell>
                           <TableCell>
@@ -379,7 +414,7 @@ if(result.value === true){
             count={props.userState.userList.length}
             component={"div"}
             onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowperPageChange}
+            onRowsPerPageChange={handlerowPerPageChange}
           ></TablePagination>
         </div>
       </Paper>
@@ -476,8 +511,16 @@ if(result.value === true){
               <Col md={6}>
                 <FormGroup>
                   <Label for="date">Date</Label>
-                  <Input type="date" name="date" id="date" placeholder="Date" value={date} onChange={handleDateChange}
-                  />
+                 
+
+<Datetime
+        inputProps={{ id: 'date' }}
+        value={date}
+        onChange={handleDateChange}
+        dateFormat="MMMM D, YYYY"
+        timeFormat="hh:mm A"
+        placeholder="Date"
+      />
                 </FormGroup>
               </Col>
               <Col md={6} >
@@ -541,38 +584,49 @@ if(result.value === true){
                     checked={status}
                     onClick={() => {
                       setStatus(!status);
-
                     }}
                   />
                   <Label check>{status === true ? "Active" : "InActive"} </Label>
                 </FormGroup>
               </Col>
-              <Col md={6}>
+              <Col md={6} >
                 {profileImage && profileImage.preview ? (
+
                   <img style={{
-                    width: "inherit", height: "80px", borderRadius: "50%",
+                    width: 100, height: 100, borderRadius: 100/ 2,
                   }}
 
                     src={profileImage && profileImage.preview}
                   />
                 ) : (
-                  <> <img
-                    src={profileImage ? profileImage : AltImage}
+                  <> <img style={{
+                    width: 100, height: 100, borderRadius: 100/ 2,
+                  }}
+                    src={showProfileImage ? showProfileImage : AltImage}
                     alt="img"
-                    width="inherit"
-                    height="80px"
+                    
 
                   /> </>
-                )}
+               )}
               </Col>
               <Col md={12}>
+              <div className="btn-design">
+
                 <FormGroup>
                   <Button  variant="contained" type="submit">
-                    Submit
-                  </Button>
+{titleButton}                  </Button>
+                 
                 </FormGroup>
-
+                <FormGroup>
+                <Button color="secondary" variant="contained" type="cancle" className="secondary-button" onClick={closePopup}>
+  Cancel
+</Button>
+                 
+                </FormGroup>
+               
+</div>
               </Col>
+             
             </Row>
           </form>
         </ModalBody>
