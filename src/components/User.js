@@ -139,7 +139,9 @@ const User = (props) => {
 
   const [selectedColor, setSelectedColor] = useState('#7f2929');
   const [errorMessage, setErrorMessage] = useState('');
-
+const lastItemIndex = props.userState.userList.length - 1;
+const lastItemData = props.userState.userList[lastItemIndex];
+const IncId =  parseInt(lastItemData && lastItemData.id) + 1
 const getAll =()=>{
   if (Object.keys(editobj).length > 0) {
     idchange(editobj.id);
@@ -192,8 +194,12 @@ const getAll =()=>{
           reader.onload = (e) => {
             const base64Image = e.target.result;
             setImage({ ...image, [editobj && editobj.id]: base64Image });
+         if(title === 'Add user'){
+         localStorage.setItem(`uploadedImage_${IncId}`, base64Image);
+           }
+else{
             localStorage.setItem(`uploadedImage_${editobj && editobj.id}`, base64Image);
-          };
+          }}
     
           reader.readAsDataURL(selectedFile);
         }
@@ -285,7 +291,7 @@ const getAll =()=>{
   
   ).then(function (result) {
 if(result.value === true){
-
+  localStorage.removeItem(`uploadedImage_${code}`)
    dispatch(removeUser(code))
    Swal.fire({
     icon: 'success',
