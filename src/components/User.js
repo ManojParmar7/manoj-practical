@@ -141,7 +141,7 @@ const User = (props) => {
   const [errorMessage, setErrorMessage] = useState('');
 const lastItemIndex = props.userState.userList.length - 1;
 const lastItemData = props.userState.userList[lastItemIndex];
-const IncId =  parseInt(lastItemData && lastItemData.id) + 1
+const IncId =  parseInt(lastItemData && lastItemData.id) + 1 || 1
 const getAll =()=>{
   if (Object.keys(editobj).length > 0) {
     idchange(editobj.id);
